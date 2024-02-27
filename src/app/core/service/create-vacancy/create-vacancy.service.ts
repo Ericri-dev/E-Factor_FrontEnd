@@ -10,6 +10,8 @@ import { AuthService } from '../auth/auth.service';
 import { SkillsService } from '../skills/skills.service';
 import { BusinessInfo } from '../../interfaces/business-info';
 import { Company } from '../../interfaces/company';
+import { BusinessService } from '../business/business.service';
+import { UtilService } from '../util/util.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,7 +20,7 @@ export class CreateVacancyService {
 
   private url: string = 'http://localhost:8085/ms-empresa/v1/cadastrar-vaga';
 
-  constructor(private http: HttpClient, private vacancyService: VacancyService, private authService: AuthService, private skillsService: SkillsService) {
+  constructor(private http: HttpClient, private vacancyService: VacancyService, private authService: AuthService, private skillsService: SkillsService, private businessService: BusinessService, private utilService: UtilService) {
   }
   private static wasSendVacancy: boolean = false;
 
@@ -33,10 +35,9 @@ export class CreateVacancyService {
     CreateVacancyService.wasSendVacancy = wasSend;
   }
 
-  //Temporário, será recuperado essa informacao da autenticação
-  protected businessInfo: Company | any ;
-  
-  
+  protected businessInfo: Company | any;
+  private businessId!: number;
+
   // {
   //   id: 1,
   //   razaoSocial: "Alphabet Inc",
@@ -127,7 +128,7 @@ export class CreateVacancyService {
   public async createVacancy(): Promise<Observable<ResponseNewVacancy>> {
     await this.getSkillIds();
 
-    let requestBody:RequestNewVacancy | undefined;
+    let requestBody: RequestNewVacancy | undefined;
 
     if (this.skillIds && this.skillIds.length > 0) {
       requestBody = {
@@ -169,5 +170,23 @@ export class CreateVacancyService {
     } catch (error) {
       console.log('Erro ao obter id das habilidades');
     }
+  }
+
+  async ngOnInit() {
+
+    await this.utilService.businessId$.subscribe({
+      next: res => {
+        this.businessId = res
+      },
+      error: () => console.log('Erro ao obter o id da empresa!')
+    })
+
+    await this.businessService.returnBusinessById(this.businessId).subscribe({
+      next: res => {
+        this.businessInfo = res
+      },
+      error: () => console.log('Erro ao obter informações da empresa!')
+    })
+
   }
 }
